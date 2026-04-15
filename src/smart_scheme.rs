@@ -68,15 +68,10 @@ fn calc_colourfulness(image: &DynamicImage) -> f64 {
 
 fn detect_variant(colourfulness: f64) -> SchemeTypes {
     match colourfulness {
-        ..5.0 => SchemeTypes::SchemeMonochrome,
-        5.0..10.0 => SchemeTypes::SchemeNeutral,
-        10.0..15.0 => SchemeTypes::SchemeTonalSpot,
-        15.0..20.0 => SchemeTypes::SchemeContent,
-        20.0..25.0 => SchemeTypes::SchemeVibrant,
-        25.0..30.0 => SchemeTypes::SchemeRainbow,
-        30.0..35.0 => SchemeTypes::SchemeExpressive,
-        35.0..40.0 => SchemeTypes::SchemeFruitSalad,
-        _ => SchemeTypes::SchemeFidelity,
+        ..15.0 => SchemeTypes::SchemeMonochrome,
+        15.0..35.0 => SchemeTypes::SchemeContent,
+        35.0..55.0 => SchemeTypes::SchemeTonalSpot,
+        _ => SchemeTypes::SchemeVibrant,
     }
 }
 
@@ -122,13 +117,8 @@ fn load_cache(hash: &str) -> Option<SmartOpts> {
 
     let variant = match cached.variant.as_str() {
         "scheme-monochrome" => SchemeTypes::SchemeMonochrome,
-        "scheme-neutral" => SchemeTypes::SchemeNeutral,
         "scheme-content" => SchemeTypes::SchemeContent,
         "scheme-vibrant" => SchemeTypes::SchemeVibrant,
-        "scheme-rainbow" => SchemeTypes::SchemeRainbow,
-        "scheme-expressive" => SchemeTypes::SchemeExpressive,
-        "scheme-fruitsalad" => SchemeTypes::SchemeFruitSalad,
-        "scheme-fidelity" => SchemeTypes::SchemeFidelity,
         _ => SchemeTypes::SchemeTonalSpot,
     };
 
@@ -141,6 +131,14 @@ fn save_cache(hash: &str, opts: &SmartOpts) -> Result<(), Report> {
     create_dir_all(&cache_dir)?;
 
     let path = cache_dir.join(format!("{hash}.json"));
+
+    let variant_str = match opts.variant {
+        SchemeTypes::SchemeMonochrome => "scheme-monochrome",
+        SchemeTypes::SchemeContent => "scheme-content",
+        SchemeTypes::SchemeTonalSpot => "scheme-tonal-spot",
+        SchemeTypes::SchemeVibrant => "scheme-vibrant",
+        _ => "scheme-tonal-spot",
+    };
 
     let cached = SmartCache {
         mode: opts.mode.to_string(),
@@ -229,21 +227,10 @@ mod tests {
     #[test]
     fn test_detect_variant_boundaries() {
         assert!(matches!(detect_variant(0.0), SchemeTypes::SchemeMonochrome));
-        assert!(matches!(detect_variant(5.0), SchemeTypes::SchemeNeutral));
-        assert!(matches!(detect_variant(10.0), SchemeTypes::SchemeTonalSpot));
         assert!(matches!(detect_variant(15.0), SchemeTypes::SchemeContent));
-        assert!(matches!(detect_variant(20.0), SchemeTypes::SchemeVibrant));
-        assert!(matches!(detect_variant(25.0), SchemeTypes::SchemeRainbow));
-        assert!(matches!(
-            detect_variant(30.0),
-            SchemeTypes::SchemeExpressive
-        ));
-        assert!(matches!(
-            detect_variant(35.0),
-            SchemeTypes::SchemeFruitSalad
-        ));
-        assert!(matches!(detect_variant(40.0), SchemeTypes::SchemeFidelity));
-        assert!(matches!(detect_variant(100.0), SchemeTypes::SchemeFidelity));
+        assert!(matches!(detect_variant(35.0), SchemeTypes::SchemeTonalSpot));
+        assert!(matches!(detect_variant(55.0), SchemeTypes::SchemeVibrant));
+        assert!(matches!(detect_variant(100.0), SchemeTypes::SchemeVibrant));
     }
 
     #[test]
