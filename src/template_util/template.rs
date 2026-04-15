@@ -78,7 +78,7 @@ pub fn generate_single_color(
 ) -> Result<ColorVariants, Report> {
     let default_scheme_color = match default_scheme {
         SchemesEnum::Light => color_light,
-        SchemesEnum::Dark => color_dark,
+        SchemesEnum::Dark | SchemesEnum::Smart => color_dark,
     };
 
     if field == "source_color" {

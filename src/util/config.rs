@@ -10,6 +10,7 @@ use color_eyre::{Help, Report};
 use serde::{Deserialize, Serialize};
 
 use super::arguments::Cli;
+use crate::scheme::{SchemeTypes, SchemesEnum};
 use crate::{util::arguments::SelectionPreference, wallpaper::Wallpaper, Template};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -28,6 +29,8 @@ pub struct Config {
     pub fallback_color: Option<String>,
     pub prefer: Option<SelectionPreference>,
     pub contrast: Option<f64>,
+    pub mode: Option<SchemesEnum>,
+    pub r#type: Option<SchemeTypes>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

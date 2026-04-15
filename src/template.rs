@@ -81,7 +81,7 @@ impl TemplateFile<'_> {
             let input_path = if let Some(input_path_mode) = &template.input_path_modes {
                 match self.state.default_scheme {
                     SchemesEnum::Light => &input_path_mode.light,
-                    SchemesEnum::Dark => &input_path_mode.dark,
+                    SchemesEnum::Dark | SchemesEnum::Smart => &input_path_mode.dark,
                 }
             } else {
                 &template.input_path
