@@ -48,9 +48,11 @@ pub fn merge_json_source(
     base16_schemes: &Option<Schemes>,
     theme: &Option<Theme>,
     default_scheme: SchemesEnum,
+    smart_output: bool,
 ) -> Result<Value, Report> {
     if let Some(schemes) = &md3_schemes {
-        let colors_md3 = format_schemes(&schemes, default_scheme, schemes.get_all_names());
+        let colors_md3 =
+            format_schemes(&schemes, default_scheme, schemes.get_all_names(), smart_output);
 
         let json_md3 = serde_json::json!({"colors": serde_json::to_value(colors_md3).wrap_err("Could not format md3 colors to JSON")?});
 
@@ -58,7 +60,8 @@ pub fn merge_json_source(
     }
 
     if let Some(base16) = base16_schemes {
-        let colors_base16 = format_schemes(&base16, default_scheme, base16.get_all_names());
+        let colors_base16 =
+            format_schemes(&base16, default_scheme, base16.get_all_names(), smart_output);
 
         let json_base16 = serde_json::json!({"base16": serde_json::to_value(colors_base16).wrap_err("Could not format base16 colors to JSON")?});
 

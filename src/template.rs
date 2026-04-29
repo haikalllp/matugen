@@ -158,6 +158,7 @@ impl TemplateFile<'_> {
                         &entry.base16,
                         &entry.theme,
                         self.state.default_scheme,
+                        self.state.smart_output,
                     )?;
                 } else {
                     let (mut schemes, _, theme, mut base16) = generate_schemes_and_theme(
@@ -175,6 +176,7 @@ impl TemplateFile<'_> {
                         &base16,
                         &theme,
                         self.state.default_scheme,
+                        self.state.smart_output,
                     )?;
 
                     self.scheme_cache.insert(
@@ -232,6 +234,7 @@ impl TemplateFile<'_> {
                     &self.state.base16,
                     &self.state.theme,
                     self.state.default_scheme,
+                    self.state.smart_output,
                 )?;
             }
         }
@@ -327,6 +330,7 @@ fn change_scheme_type(
     base16_schemes: &Option<Schemes>,
     theme: &Option<Theme>,
     default_scheme: SchemesEnum,
+    smart_output: bool,
 ) -> Result<(), Report> {
     engine.remove_key_from_context("colors");
     engine.remove_key_from_context("base16");
@@ -338,6 +342,7 @@ fn change_scheme_type(
         base16_schemes,
         theme,
         default_scheme,
+        smart_output,
     )?;
 
     engine.add_context(json);

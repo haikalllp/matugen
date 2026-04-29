@@ -116,6 +116,7 @@ pub fn format_schemes(
     schemes: &Schemes,
     default_scheme: SchemesEnum,
     names: Vec<&String>,
+    smart_output: bool,
 ) -> IndexMap<String, Value> {
     let mut scheme_map = IndexMap::new();
 
@@ -128,11 +129,18 @@ pub fn format_schemes(
             SchemesEnum::Dark => dark_hex.clone(),
             SchemesEnum::Light | SchemesEnum::Smart => light_hex.clone(),
         };
+        let smart_hex = match default_scheme {
+            SchemesEnum::Dark => dark_hex.clone(),
+            SchemesEnum::Light | SchemesEnum::Smart => light_hex.clone(),
+        };
 
         let mut schemes = Map::new();
         schemes.insert("dark".to_string(), color_entry(dark_hex));
         schemes.insert("light".to_string(), color_entry(light_hex));
         schemes.insert("default".to_string(), color_entry(default_hex));
+        if smart_output {
+            schemes.insert("smart".to_string(), color_entry(smart_hex));
+        }
         scheme_map.insert(name.to_string(), Value::Object(schemes));
     }
 

@@ -61,6 +61,7 @@ pub struct State {
     pub image_hash: ImageCache,
     pub loaded_cache: bool,
     pub base16: Option<Schemes>,
+    pub smart_output: bool,
 }
 
 impl State {
@@ -117,6 +118,8 @@ impl State {
                 .unwrap_or(SchemesEnum::Dark),
             other => other,
         };
+        let smart_output = matches!(effective_mode, SchemesEnum::Smart)
+            || matches!(effective_type, SchemeTypes::SchemeSmart);
 
         let resolved_type = match effective_type {
             SchemeTypes::SchemeSmart => smart_opts
@@ -176,6 +179,7 @@ impl State {
             image_hash: image_cache,
             loaded_cache,
             base16,
+            smart_output,
         })
     }
 
@@ -203,6 +207,7 @@ impl State {
                 &self.base16,
                 &self.theme,
                 self.default_scheme,
+                self.smart_output,
             )?,
         };
 
@@ -280,9 +285,28 @@ impl State {
             SchemesEnum::Light | SchemesEnum::Smart => false,
         };
 
-        Ok(serde_json::json!({
-            "image": image, "mode": format!("{}", self.default_scheme), "is_dark_mode": is_dark_mode,
-        }))
+        let mut json = serde_json::Map::new();
+        json.insert("image".to_string(), serde_json::to_value(image)?);
+        json.insert(
+            "mode".to_string(),
+            serde_json::Value::String(format!("{}", self.default_scheme)),
+        );
+        json.insert(
+            "is_dark_mode".to_string(),
+            serde_json::Value::Bool(is_dark_mode),
+        );
+
+        if self.smart_output {
+            json.insert(
+                "meta".to_string(),
+                serde_json::json!({
+                    "mode": "smart",
+                    "resolved_mode": format!("{}", self.default_scheme),
+                }),
+            );
+        }
+
+        Ok(serde_json::Value::Object(json))
     }
 
     fn add_engine_filters(&self, engine: &mut Engine) {
