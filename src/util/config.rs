@@ -31,6 +31,7 @@ pub struct Config {
     pub contrast: Option<f64>,
     pub mode: Option<SchemesEnum>,
     pub r#type: Option<SchemeTypes>,
+    pub smart_caching: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

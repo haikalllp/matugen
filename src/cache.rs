@@ -11,7 +11,6 @@ use crate::{
     util::config::{get_proj_path, ProjectDirsTypes},
 };
 use color_eyre::Report;
-use image::ImageReader;
 use indexmap::IndexMap;
 use material_colors::color::Argb;
 use serde::{
@@ -19,7 +18,6 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CacheFile {
@@ -249,12 +247,10 @@ fn get_cache(source: &Source) -> Option<String> {
 }
 
 fn hash_image_from_path(path: &str) -> Result<String, Report> {
-    let img = ImageReader::open(path)?.decode()?;
-    let bytes = img.into_bytes();
+    use sha2::{Digest, Sha256};
 
+    let data = std::fs::read(path)?;
     let mut hasher = Sha256::new();
-    hasher.update(&bytes);
-    let hash = hasher.finalize();
-
-    Ok(format!("{:x}", hash))
+    hasher.update(&data);
+    Ok(format!("{:x}", hasher.finalize()))
 }

@@ -103,8 +103,7 @@ fn hash_file(path: &Path) -> Result<String, Report> {
     Ok(format!("{:x}", hasher.finalize()))
 }
 
-fn load_cache(hash: &str) -> Option<SmartOpts> {
-    let cache_dir = get_cache_dir()?;
+fn load_cache_from_dir(hash: &str, cache_dir: &Path) -> Option<SmartOpts> {
     let path = cache_dir.join(format!("{hash}.json"));
 
     let content = read_to_string(&path).ok()?;
@@ -122,13 +121,18 @@ fn load_cache(hash: &str) -> Option<SmartOpts> {
         _ => SchemeTypes::SchemeTonalSpot,
     };
 
+    success!("Loaded smart cache from <d><u>{}</>", path.display());
+
     Some(SmartOpts { mode, variant })
 }
 
-fn save_cache(hash: &str, opts: &SmartOpts) -> Result<(), Report> {
-    let cache_dir =
-        get_cache_dir().ok_or_else(|| Report::msg("Could not determine cache directory"))?;
-    create_dir_all(&cache_dir)?;
+fn load_cache(hash: &str) -> Option<SmartOpts> {
+    let cache_dir = get_cache_dir()?;
+    load_cache_from_dir(hash, &cache_dir)
+}
+
+fn save_cache_to_dir(hash: &str, opts: &SmartOpts, cache_dir: &Path) -> Result<(), Report> {
+    create_dir_all(cache_dir)?;
 
     let path = cache_dir.join(format!("{hash}.json"));
 
@@ -142,21 +146,35 @@ fn save_cache(hash: &str, opts: &SmartOpts) -> Result<(), Report> {
 
     let cached = SmartCache {
         mode: opts.mode.to_string(),
-        variant: format!("{:?}", opts.variant).to_lowercase(),
+        variant: variant_str.to_string(),
     };
 
     let file = File::create(&path)?;
     let mut writer = BufWriter::new(file);
     writer.write_all(serde_json::to_string_pretty(&cached)?.as_bytes())?;
 
+    success!("Saved smart cache to <d><u>{}</>", path.display());
+
     Ok(())
 }
 
-pub fn get_smart_opts(image_path: &Path) -> Result<SmartOpts, Report> {
-    let hash = hash_file(image_path)?;
+fn save_cache(hash: &str, opts: &SmartOpts) -> Result<(), Report> {
+    let cache_dir =
+        get_cache_dir().ok_or_else(|| Report::msg("Could not determine cache directory"))?;
+    save_cache_to_dir(hash, opts, &cache_dir)
+}
 
-    if let Some(cached) = load_cache(&hash) {
-        return Ok(cached);
+pub fn get_smart_opts(image_path: &Path, use_cache: bool) -> Result<SmartOpts, Report> {
+    let hash = if use_cache {
+        hash_file(image_path).ok()
+    } else {
+        None
+    };
+
+    if let Some(hash) = hash.as_ref() {
+        if let Some(cached) = load_cache(hash) {
+            return Ok(cached);
+        }
     }
 
     let img = ImageReader::open(image_path)?.decode()?;
@@ -168,7 +186,9 @@ pub fn get_smart_opts(image_path: &Path) -> Result<SmartOpts, Report> {
 
     let opts = SmartOpts { mode, variant };
 
-    save_cache(&hash, &opts)?;
+    if let Some(hash) = hash.as_ref() {
+        save_cache(hash, &opts)?;
+    }
 
     Ok(opts)
 }
@@ -176,6 +196,133 @@ pub fn get_smart_opts(image_path: &Path) -> Result<SmartOpts, Report> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+
+    fn create_test_image(path: &Path, dark: bool) {
+        let color = if dark {
+            image::Rgb([20, 20, 30])
+        } else {
+            image::Rgb([240, 240, 250])
+        };
+        let img = image::RgbImage::from_pixel(64, 64, color);
+        img.save(path).unwrap();
+    }
+
+    fn create_unique_test_image(path: &Path, seed: u8) {
+        let mut img = image::RgbImage::new(64, 64);
+        for y in 0..64 {
+            for x in 0..64 {
+                let r = ((x as u16 + seed as u16) % 256) as u8;
+                let g = ((y as u16 + seed as u16 * 3) % 256) as u8;
+                let b = seed;
+                img.put_pixel(x, y, image::Rgb([r, g, b]));
+            }
+        }
+        img.save(path).unwrap();
+    }
+
+    #[test]
+    fn test_hash_file_consistency() {
+        let dir = tempfile::tempdir().unwrap();
+        let img_path = dir.path().join("test.png");
+        create_test_image(&img_path, true);
+
+        let hash1 = hash_file(&img_path).unwrap();
+        let hash2 = hash_file(&img_path).unwrap();
+        assert_eq!(hash1, hash2, "Same file should produce same hash");
+    }
+
+    #[test]
+    fn test_hash_file_different_images() {
+        let dir = tempfile::tempdir().unwrap();
+        let path_a = dir.path().join("a.png");
+        let path_b = dir.path().join("b.png");
+        create_test_image(&path_a, true);
+        create_test_image(&path_b, false);
+
+        let hash_a = hash_file(&path_a).unwrap();
+        let hash_b = hash_file(&path_b).unwrap();
+        assert_ne!(hash_a, hash_b, "Different images should produce different hashes");
+    }
+
+    #[test]
+    fn test_save_and_load_cache() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache_dir = dir.path().join("smart");
+        create_dir_all(&cache_dir).unwrap();
+
+        let hash = "testhash123";
+        let opts = SmartOpts {
+            mode: SchemesEnum::Light,
+            variant: SchemeTypes::SchemeVibrant,
+        };
+
+        save_cache_to_dir(hash, &opts, &cache_dir).unwrap();
+
+        let loaded = load_cache_from_dir(hash, &cache_dir).unwrap();
+        assert!(matches!(loaded.mode, SchemesEnum::Light));
+        assert!(matches!(loaded.variant, SchemeTypes::SchemeVibrant));
+    }
+
+    #[test]
+    fn test_smart_cache_roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+        let img_path = dir.path().join("test_roundtrip.png");
+        create_unique_test_image(&img_path, 42);
+
+        let result1 = get_smart_opts(&img_path, true).unwrap();
+        let result2 = get_smart_opts(&img_path, true).unwrap();
+
+        assert_eq!(result1.mode, result2.mode);
+        assert_eq!(result1.variant, result2.variant);
+    }
+
+    #[test]
+    fn test_smart_cache_disabled() {
+        let dir = tempfile::tempdir().unwrap();
+        let img_path = dir.path().join("test_disabled.png");
+        create_unique_test_image(&img_path, 99);
+
+        let hash = hash_file(&img_path).unwrap();
+        let cache_dir = get_cache_dir().unwrap_or_else(|| std::env::temp_dir().join("matugen").join("smart"));
+        let cache_path = cache_dir.join(format!("{hash}.json"));
+
+        let _ = fs::remove_file(&cache_path);
+
+        let _result = get_smart_opts(&img_path, false).unwrap();
+        assert!(!cache_path.exists(), "Cache file should NOT be created when caching is disabled");
+    }
+
+    #[test]
+    fn test_smart_cache_actually_hits_cache() {
+        let dir = tempfile::tempdir().unwrap();
+        let img_path = dir.path().join("test_hits_cache.png");
+        create_unique_test_image(&img_path, 77);
+
+        let hash = hash_file(&img_path).unwrap();
+
+        let cache_dir = get_cache_dir().unwrap_or_else(|| std::env::temp_dir().join("matugen").join("smart"));
+        let cache_path = cache_dir.join(format!("{hash}.json"));
+        let _ = fs::remove_file(&cache_path);
+
+        let result1 = get_smart_opts(&img_path, true).unwrap();
+        assert!(cache_path.exists(), "Cache file should exist after first call");
+
+        let metadata_before = fs::metadata(&cache_path).unwrap();
+        let modified_before = metadata_before.modified().unwrap();
+
+        std::thread::sleep(std::time::Duration::from_millis(50));
+
+        let result2 = get_smart_opts(&img_path, true).unwrap();
+
+        let metadata_after = fs::metadata(&cache_path).unwrap();
+        let modified_after = metadata_after.modified().unwrap();
+
+        assert_eq!(modified_before, modified_after, "Cache file should NOT be rewritten on hit");
+
+        assert_eq!(result1.mode, result2.mode);
+        assert_eq!(result1.variant, result2.variant);
+    }
 
     #[test]
     fn test_colourfulness_grayscale() {

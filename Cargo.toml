@@ -27,6 +27,7 @@ jxl-image = ["dep:jxl-oxide"]
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
+tempfile = "3"
 
 [dependencies]
 # Engine

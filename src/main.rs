@@ -86,6 +86,8 @@ impl State {
             .or(config_file.config.r#type)
             .unwrap_or(SchemeTypes::SchemeTonalSpot);
 
+        let smart_caching = config_file.config.smart_caching.unwrap_or(true);
+
         let smart_opts: Option<SmartOpts> = if args.source.is_image()
             && (matches!(effective_mode, SchemesEnum::Smart)
                 || matches!(effective_type, SchemeTypes::SchemeSmart))
@@ -94,14 +96,8 @@ impl State {
                 Source::Image { path } => path,
                 _ => unreachable!(),
             };
-            match smart_scheme::get_smart_opts(std::path::Path::new(image_path)) {
-                Ok(opts) => {
-                    info!(
-                        "Smart scheme detected: mode=<b><cyan>{}</>, variant=<b><cyan>{:?}</>",
-                        opts.mode, opts.variant
-                    );
-                    Some(opts)
-                }
+            match smart_scheme::get_smart_opts(std::path::Path::new(image_path), smart_caching) {
+                Ok(opts) => Some(opts),
                 Err(e) => {
                     warn!(
                         "Smart scheme detection failed: <yellow>{}</>. Falling back to defaults.",
@@ -131,6 +127,11 @@ impl State {
         };
 
         let resolved_type_opt = Some(resolved_type);
+
+        info!(
+            "Scheme: mode=<b><cyan>{}</>, variant=<b><cyan>{:?}</>",
+            default_scheme, resolved_type
+        );
 
         let (mut schemes, source_color, theme, mut base16) = if caching_enabled {
             match image_cache.load() {
