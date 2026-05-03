@@ -69,8 +69,8 @@ fn calc_colourfulness(image: &DynamicImage) -> f64 {
 fn detect_variant(colourfulness: f64) -> SchemeTypes {
     match colourfulness {
         ..15.0 => SchemeTypes::SchemeMonochrome,
-        15.0..35.0 => SchemeTypes::SchemeContent,
-        35.0..55.0 => SchemeTypes::SchemeTonalSpot,
+        15.0..30.0 => SchemeTypes::SchemeNeutral,
+        30.0..65.0 => SchemeTypes::SchemeTonalSpot,
         _ => SchemeTypes::SchemeVibrant,
     }
 }
@@ -116,7 +116,7 @@ fn load_cache_from_dir(hash: &str, cache_dir: &Path) -> Option<SmartOpts> {
 
     let variant = match cached.variant.as_str() {
         "scheme-monochrome" => SchemeTypes::SchemeMonochrome,
-        "scheme-content" => SchemeTypes::SchemeContent,
+        "scheme-neutral" => SchemeTypes::SchemeNeutral,
         "scheme-vibrant" => SchemeTypes::SchemeVibrant,
         _ => SchemeTypes::SchemeTonalSpot,
     };
@@ -138,7 +138,7 @@ fn save_cache_to_dir(hash: &str, opts: &SmartOpts, cache_dir: &Path) -> Result<(
 
     let variant_str = match opts.variant {
         SchemeTypes::SchemeMonochrome => "scheme-monochrome",
-        SchemeTypes::SchemeContent => "scheme-content",
+        SchemeTypes::SchemeNeutral => "scheme-neutral",
         SchemeTypes::SchemeTonalSpot => "scheme-tonal-spot",
         SchemeTypes::SchemeVibrant => "scheme-vibrant",
         _ => "scheme-tonal-spot",
@@ -374,9 +374,9 @@ mod tests {
     #[test]
     fn test_detect_variant_boundaries() {
         assert!(matches!(detect_variant(0.0), SchemeTypes::SchemeMonochrome));
-        assert!(matches!(detect_variant(15.0), SchemeTypes::SchemeContent));
-        assert!(matches!(detect_variant(35.0), SchemeTypes::SchemeTonalSpot));
-        assert!(matches!(detect_variant(55.0), SchemeTypes::SchemeVibrant));
+        assert!(matches!(detect_variant(15.0), SchemeTypes::SchemeNeutral));
+        assert!(matches!(detect_variant(30.0), SchemeTypes::SchemeTonalSpot));
+        assert!(matches!(detect_variant(65.0), SchemeTypes::SchemeVibrant));
         assert!(matches!(detect_variant(100.0), SchemeTypes::SchemeVibrant));
     }
 

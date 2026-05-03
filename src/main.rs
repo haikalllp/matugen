@@ -741,7 +741,7 @@ fn main() -> Result<(), Report> {
         source: crate::Source::Color(crate::color::color::ColorFormat::Hex {
             string: String::from("#ffffff"),
         }),
-        r#type: Some(SchemeTypes::SchemeContent),
+        r#type: Some(SchemeTypes::SchemeNeutral),
         config: None,
         prefix: None,
         contrast: Some(0.0),

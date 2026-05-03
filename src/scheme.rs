@@ -195,9 +195,9 @@ mod tests {
             Scheme::from(generate_dynamic_scheme(&None, source_color, true, None,)).primary,
             Argb {
                 alpha: 255,
-                red: 255,
-                green: 180,
-                blue: 168,
+                red: 223,
+                green: 191,
+                blue: 186,
             }
         );
     }
