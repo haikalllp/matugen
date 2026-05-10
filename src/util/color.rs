@@ -126,7 +126,7 @@ pub fn format_schemes(
         let light_hex = format_hex_alpha(&rgb_from_argb(*light_color));
         let default_hex = match default_scheme {
             SchemesEnum::Dark => dark_hex.clone(),
-            SchemesEnum::Light => light_hex.clone(),
+            SchemesEnum::Light | SchemesEnum::Smart => light_hex.clone(),
         };
 
         let mut schemes = Map::new();

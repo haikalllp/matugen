@@ -9,6 +9,7 @@ use material_colors::theme::ThemeBuilder;
 use serde_json::Value;
 
 mod helpers;
+mod smart_scheme;
 pub mod template;
 mod util;
 mod wallpaper;
@@ -20,11 +21,12 @@ use crate::{
         apply_opacity_to_schemes, generate_schemes_and_theme, get_syntax, json_from_file,
         merge_json, merge_json_source, parse_fallback_color,
     },
-    scheme::SchemeTypes,
+    scheme::{SchemeTypes, SchemesEnum},
     template::get_absolute_path,
     util::arguments::FilterType,
 };
 use helpers::{set_wallpaper, setup_logging};
+use smart_scheme::SmartOpts;
 use template::TemplateFile;
 
 use crate::{
@@ -43,10 +45,7 @@ pub mod parser;
 pub mod scheme;
 pub mod template_util;
 
-use crate::{
-    parser::Engine,
-    scheme::{Schemes, SchemesEnum},
-};
+use crate::{parser::Engine, scheme::Schemes};
 
 use material_colors::{color::Argb, theme::Theme};
 
@@ -58,6 +57,7 @@ pub struct State {
     pub theme: Option<Theme>,
     pub schemes: Option<Schemes>,
     pub default_scheme: SchemesEnum,
+    pub resolved_type: SchemeTypes,
     pub image_hash: ImageCache,
     pub loaded_cache: bool,
     pub base16: Option<Schemes>,
@@ -73,9 +73,18 @@ impl State {
 
         config_file.parse_cli_overrides(&args);
 
+        let effective_mode = config_file
+            .config
+            .mode
+            .unwrap_or(SchemesEnum::Dark);
+        let effective_type = config_file
+            .config
+            .r#type
+            .unwrap_or(SchemeTypes::SchemeTonalSpot);
+
         let image_cache = ImageCache::new(
             &args.source,
-            args.r#type,
+            effective_type,
             args.contrast.or(config_file.config.contrast),
             args.lightness_dark,
             args.lightness_light,
@@ -85,9 +94,50 @@ impl State {
 
         let caching_enabled = config_file.config.caching.unwrap_or(false) && args.source.is_image();
 
-        let default_scheme = args
-            .mode
-            .ok_or_else(|| Report::msg("Something went wrong while parsing the mode"))?;
+        let smart_caching = config_file.config.smart_caching.unwrap_or(true);
+
+        let smart_opts: Option<SmartOpts> = if args.source.is_image()
+            && (matches!(effective_mode, SchemesEnum::Smart)
+                || matches!(effective_type, SchemeTypes::SchemeSmart))
+        {
+            let image_path = match &args.source {
+                Source::Image { path } => path,
+                _ => unreachable!(),
+            };
+            match smart_scheme::get_smart_opts(std::path::Path::new(image_path), smart_caching) {
+                Ok(opts) => Some(opts),
+                Err(e) => {
+                    warn!(
+                        "Smart scheme detection failed: <yellow>{}</>. Falling back to defaults.",
+                        e
+                    );
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        let default_scheme = match effective_mode {
+            SchemesEnum::Smart => smart_opts
+                .as_ref()
+                .map(|o| o.mode)
+                .unwrap_or(SchemesEnum::Dark),
+            other => other,
+        };
+
+        let resolved_type = match effective_type {
+            SchemeTypes::SchemeSmart => smart_opts
+                .as_ref()
+                .map(|o| o.variant)
+                .unwrap_or(SchemeTypes::SchemeTonalSpot),
+            other => other,
+        };
+
+        info!(
+            "Scheme: mode=<b><cyan>{}</>, variant=<b><cyan>{:?}</>",
+            default_scheme, resolved_type
+        );
 
         if let Source::Image { path } = &args.source {
             if args.show_source_colors.is_some_and(|x| x) {
@@ -132,14 +182,14 @@ impl State {
                             "<d>The cache in <yellow><b>{}</><d> doesn't exist.</>",
                             image_cache.get_path().display()
                         );
-                        generate_schemes_and_theme(&args, &config_file, args.r#type)?
+                        generate_schemes_and_theme(&args, &config_file, resolved_type)?
                     } else {
                         return Err(e.wrap_err("Couldn't load the cache file").suggestion("You may need to regenerate your cache if coming from v3.1.0 and lower."));
                     }
                 }
             }
         } else {
-            generate_schemes_and_theme(&args, &config_file, args.r#type)?
+            generate_schemes_and_theme(&args, &config_file, resolved_type)?
         };
 
         apply_opacity_to_schemes(&mut base16, args.opacity);
@@ -153,6 +203,7 @@ impl State {
             theme,
             schemes,
             default_scheme,
+            resolved_type,
             image_hash: image_cache,
             loaded_cache,
             base16,
@@ -257,7 +308,7 @@ impl State {
 
         let is_dark_mode = match self.default_scheme {
             SchemesEnum::Dark => true,
-            SchemesEnum::Light => false,
+            SchemesEnum::Light | SchemesEnum::Smart => false,
         };
 
         Ok(serde_json::json!({
@@ -697,7 +748,7 @@ fn main() -> Result<(), Report> {
         source: crate::Source::Color(crate::color::color::ColorFormat::Hex {
             string: String::from("#ffffff"),
         }),
-        r#type: SchemeTypes::SchemeContent,
+        r#type: Some(SchemeTypes::SchemeTonalSpot),
         config: None,
         prefix: None,
         contrast: Some(0.0),
