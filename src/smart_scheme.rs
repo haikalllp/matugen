@@ -23,8 +23,8 @@ pub struct SmartOpts {
 
 #[derive(Serialize, Deserialize)]
 struct SmartCache {
-    mode: String,
-    variant: String,
+    mode: SchemesEnum,
+    variant: SchemeTypes,
 }
 
 fn calc_colourfulness(image: &DynamicImage) -> f64 {
@@ -96,10 +96,11 @@ fn get_cache_dir() -> Option<std::path::PathBuf> {
 
 fn hash_file(path: &Path) -> Result<String, Report> {
     use sha2::{Digest, Sha256};
+    use std::io::copy;
 
-    let data = std::fs::read(path)?;
+    let mut file = File::open(path)?;
     let mut hasher = Sha256::new();
-    hasher.update(&data);
+    copy(&mut file, &mut hasher)?;
     Ok(format!("{:x}", hasher.finalize()))
 }
 
@@ -109,21 +110,12 @@ fn load_cache_from_dir(hash: &str, cache_dir: &Path) -> Option<SmartOpts> {
     let content = read_to_string(&path).ok()?;
     let cached: SmartCache = serde_json::from_str(&content).ok()?;
 
-    let mode = match cached.mode.as_str() {
-        "light" => SchemesEnum::Light,
-        _ => SchemesEnum::Dark,
-    };
-
-    let variant = match cached.variant.as_str() {
-        "scheme-monochrome" => SchemeTypes::SchemeMonochrome,
-        "scheme-neutral" => SchemeTypes::SchemeNeutral,
-        "scheme-vibrant" => SchemeTypes::SchemeVibrant,
-        _ => SchemeTypes::SchemeTonalSpot,
-    };
-
     success!("Loaded smart cache from <d><u>{}</>", path.display());
 
-    Some(SmartOpts { mode, variant })
+    Some(SmartOpts {
+        mode: cached.mode,
+        variant: cached.variant,
+    })
 }
 
 fn load_cache(hash: &str) -> Option<SmartOpts> {
@@ -136,17 +128,9 @@ fn save_cache_to_dir(hash: &str, opts: &SmartOpts, cache_dir: &Path) -> Result<(
 
     let path = cache_dir.join(format!("{hash}.json"));
 
-    let variant_str = match opts.variant {
-        SchemeTypes::SchemeMonochrome => "scheme-monochrome",
-        SchemeTypes::SchemeNeutral => "scheme-neutral",
-        SchemeTypes::SchemeTonalSpot => "scheme-tonal-spot",
-        SchemeTypes::SchemeVibrant => "scheme-vibrant",
-        _ => "scheme-tonal-spot",
-    };
-
     let cached = SmartCache {
-        mode: opts.mode.to_string(),
-        variant: variant_str.to_string(),
+        mode: opts.mode,
+        variant: opts.variant,
     };
 
     let file = File::create(&path)?;
@@ -335,20 +319,6 @@ mod tests {
         assert!(
             score < 1.0,
             "Grayscale image should have near-zero colourfulness, got {score}"
-        );
-    }
-
-    #[test]
-    fn test_colourfulness_solid_color() {
-        let img = DynamicImage::ImageRgb8(image::RgbImage::from_pixel(
-            128,
-            128,
-            image::Rgb([128, 128, 128]),
-        ));
-        let score = calc_colourfulness(&img);
-        assert!(
-            score < 1.0,
-            "Solid gray should have near-zero colourfulness, got {score}"
         );
     }
 
