@@ -11,6 +11,7 @@ use crate::{
     util::config::{get_proj_path, ProjectDirsTypes},
 };
 use color_eyre::Report;
+use image::ImageReader;
 use indexmap::IndexMap;
 use material_colors::color::Argb;
 use serde::{
@@ -18,6 +19,7 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CacheFile {

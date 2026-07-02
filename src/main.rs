@@ -157,6 +157,7 @@ impl State {
                     theme: None,
                     schemes: None,
                     default_scheme,
+                    resolved_type,
                     image_hash: image_cache,
                     loaded_cache,
                     base16: None,
