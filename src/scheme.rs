@@ -79,7 +79,6 @@ impl Schemes {
     Ord,
     clap::ValueEnum,
 )]
-#[serde(rename_all = "lowercase")]
 pub enum SchemesEnum {
     Light,
     Dark,
