@@ -14,7 +14,6 @@ use crate::color::color::{
 #[derive(
     Clone, clap::ValueEnum, Debug, Copy, Eq, PartialEq, Serialize, Deserialize, Hash, Default,
 )]
-#[serde(rename_all = "kebab-case")]
 pub enum SchemeTypes {
     #[default]
     SchemeContent,
