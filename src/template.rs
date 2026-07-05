@@ -16,7 +16,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-use std::{collections::HashMap, path::Path, process::Stdio, str};
+use std::{collections::HashMap, path::Path, str};
 
 use std::{
     fs::{create_dir_all, read_to_string, OpenOptions},
@@ -102,6 +102,7 @@ impl TemplateFile<'_> {
                 match self.state.default_scheme {
                     SchemesEnum::Light => &input_path_mode.light,
                     SchemesEnum::Dark => &input_path_mode.dark,
+                    SchemesEnum::Smart => unreachable!("default_scheme is resolved before storage"),
                 }
             } else {
                 &template.input_path
