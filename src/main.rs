@@ -86,23 +86,31 @@ impl State {
             .values()
             .any(|t| matches!(t.r#type, Some(SchemeTypes::SchemeSmart)));
 
-        let smart_opts: Option<SmartOpts> = if args.source.is_image()
-            && (matches!(effective_mode, SchemesEnum::Smart)
-                || matches!(effective_type, SchemeTypes::SchemeSmart)
-                || any_template_smart)
-        {
-            let image_path = match &args.source {
-                Source::Image { path } => path,
-                _ => unreachable!(),
-            };
-            match smart_scheme::get_smart_opts(std::path::Path::new(image_path)) {
-                Ok(opts) => Some(opts),
-                Err(e) => {
-                    warn!(
-                        "Smart scheme detection failed: <yellow>{}</>. Falling back to defaults.",
-                        e
-                    );
-                    None
+        let smart_requested = matches!(effective_mode, SchemesEnum::Smart)
+            || matches!(effective_type, SchemeTypes::SchemeSmart)
+            || any_template_smart;
+
+        let smart_opts: Option<SmartOpts> = if smart_requested {
+            if !args.source.is_image() {
+                warn!(
+                    "Smart scheme needs an image source, got <yellow>{:?}</>. Falling back to defaults.",
+                    args.source
+                );
+                None
+            } else {
+                let image_path = match &args.source {
+                    Source::Image { path } => path,
+                    _ => unreachable!(),
+                };
+                match smart_scheme::get_smart_opts(std::path::Path::new(image_path)) {
+                    Ok(opts) => Some(opts),
+                    Err(e) => {
+                        warn!(
+                            "Smart scheme detection failed: <yellow>{}</>. Falling back to defaults.",
+                            e
+                        );
+                        None
+                    }
                 }
             }
         } else {
