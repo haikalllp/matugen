@@ -10,7 +10,6 @@ use color_eyre::{Help, Report};
 use serde::{Deserialize, Serialize};
 
 use super::arguments::Cli;
-use crate::scheme::{SchemeTypes, SchemesEnum};
 use crate::{util::arguments::SelectionPreference, wallpaper::Wallpaper, Template};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -30,8 +29,6 @@ pub struct Config {
     pub prefer: Option<SelectionPreference>,
     pub contrast: Option<f64>,
     pub source_color_index: Option<i64>,
-    pub mode: Option<SchemesEnum>,
-    pub r#type: Option<SchemeTypes>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -118,12 +115,6 @@ impl ConfigFile {
         }
         if cli.prefer.is_some() {
             self.config.prefer = cli.prefer.clone();
-        }
-        if cli.r#type.is_some() {
-            self.config.r#type = cli.r#type;
-        }
-        if cli.mode.is_some() {
-            self.config.mode = cli.mode;
         }
     }
 }

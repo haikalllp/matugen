@@ -73,14 +73,8 @@ impl State {
 
         config_file.parse_cli_overrides(&args);
 
-        let effective_mode = config_file
-            .config
-            .mode
-            .unwrap_or(SchemesEnum::Dark);
-        let effective_type = config_file
-            .config
-            .r#type
-            .unwrap_or(SchemeTypes::SchemeTonalSpot);
+        let effective_mode = args.mode.unwrap_or(SchemesEnum::Dark);
+        let effective_type = args.r#type;
 
         let mut loaded_cache = false;
 
@@ -748,7 +742,7 @@ fn main() -> Result<(), Report> {
         source: crate::Source::Color(crate::color::color::ColorFormat::Hex {
             string: String::from("#ffffff"),
         }),
-        r#type: Some(SchemeTypes::SchemeTonalSpot),
+        r#type: SchemeTypes::SchemeTonalSpot,
         config: None,
         prefix: None,
         contrast: Some(0.0),

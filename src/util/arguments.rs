@@ -13,8 +13,14 @@ pub struct Cli {
     pub source: crate::color::color::Source,
 
     /// Sets a custom color scheme type
-    #[arg(short, long, value_name = "TYPE", global = true)]
-    pub r#type: Option<crate::scheme::SchemeTypes>,
+    #[arg(
+        short,
+        long,
+        value_name = "TYPE",
+        global = true,
+        default_value = "scheme-tonal-spot"
+    )]
+    pub r#type: crate::scheme::SchemeTypes,
 
     /// Sets a custom config file
     #[arg(short, long, value_name = "FILE", global = true)]
@@ -45,7 +51,14 @@ pub struct Cli {
     pub include_image_in_json: Option<bool>,
 
     /// Which mode to use for the color scheme
-    #[arg(value_enum, short, long, global = true, value_name = "MODE")]
+    #[arg(
+        value_enum,
+        short,
+        long,
+        global = true,
+        value_name = "MODE",
+        default_value = "dark"
+    )]
     pub mode: Option<SchemesEnum>,
 
     /// Will not generate templates, reload apps, set wallpaper or run any commands
