@@ -54,9 +54,9 @@ fn calc_colorfulness(image: &DynamicImage) -> f64 {
 
 fn detect_variant(colorfulness: f64) -> SchemeTypes {
     match colorfulness {
-        ..15.0 => SchemeTypes::SchemeMonochrome,
-        15.0..30.0 => SchemeTypes::SchemeNeutral,
-        30.0..65.0 => SchemeTypes::SchemeTonalSpot,
+        ..6.0 => SchemeTypes::SchemeMonochrome,
+        6.0..20.0 => SchemeTypes::SchemeNeutral,
+        20.0..70.0 => SchemeTypes::SchemeTonalSpot,
         _ => SchemeTypes::SchemeVibrant,
     }
 }
@@ -127,9 +127,9 @@ mod tests {
     #[test]
     fn test_detect_variant_boundaries() {
         assert!(matches!(detect_variant(0.0), SchemeTypes::SchemeMonochrome));
-        assert!(matches!(detect_variant(15.0), SchemeTypes::SchemeNeutral));
-        assert!(matches!(detect_variant(30.0), SchemeTypes::SchemeTonalSpot));
-        assert!(matches!(detect_variant(65.0), SchemeTypes::SchemeVibrant));
+        assert!(matches!(detect_variant(6.0), SchemeTypes::SchemeNeutral));
+        assert!(matches!(detect_variant(18.0), SchemeTypes::SchemeTonalSpot));
+        assert!(matches!(detect_variant(70.0), SchemeTypes::SchemeVibrant));
         assert!(matches!(detect_variant(100.0), SchemeTypes::SchemeVibrant));
     }
 
