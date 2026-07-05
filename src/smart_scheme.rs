@@ -13,7 +13,7 @@ pub struct SmartOpts {
     pub variant: SchemeTypes,
 }
 
-fn calc_colourfulness(image: &DynamicImage) -> f64 {
+fn calc_colorfulness(image: &DynamicImage) -> f64 {
     let rgb_image = image.to_rgb8();
     let pixels = rgb_image.pixels();
 
@@ -52,8 +52,8 @@ fn calc_colourfulness(image: &DynamicImage) -> f64 {
     (std_rg.powi(2) + std_yb.powi(2)).sqrt() + 0.3 * (mean_rg.powi(2) + mean_yb.powi(2)).sqrt()
 }
 
-fn detect_variant(colourfulness: f64) -> SchemeTypes {
-    match colourfulness {
+fn detect_variant(colorfulness: f64) -> SchemeTypes {
+    match colorfulness {
         ..15.0 => SchemeTypes::SchemeMonochrome,
         15.0..30.0 => SchemeTypes::SchemeNeutral,
         30.0..65.0 => SchemeTypes::SchemeTonalSpot,
@@ -81,8 +81,8 @@ pub fn get_smart_opts(image_path: &Path) -> Result<SmartOpts, Report> {
     let thumb = img.thumbnail(128, 128);
 
     let mode = detect_mode(&thumb);
-    let colourfulness = calc_colourfulness(&thumb);
-    let variant = detect_variant(colourfulness);
+    let colorfulness = calc_colorfulness(&thumb);
+    let variant = detect_variant(colorfulness);
 
     Ok(SmartOpts { mode, variant })
 }
@@ -92,21 +92,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_colourfulness_grayscale() {
+    fn test_colorfulness_grayscale() {
         let img = DynamicImage::ImageRgb8(image::RgbImage::from_pixel(
             128,
             128,
             image::Rgb([128, 128, 128]),
         ));
-        let score = calc_colourfulness(&img);
+        let score = calc_colorfulness(&img);
         assert!(
             score < 1.0,
-            "Grayscale image should have near-zero colourfulness, got {score}"
+            "Grayscale image should have near-zero colorfulness, got {score}"
         );
     }
 
     #[test]
-    fn test_colourfulness_colorful() {
+    fn test_colorfulness_colorful() {
         let mut img_buf = image::RgbImage::new(128, 128);
         for y in 0..128 {
             for x in 0..128 {
@@ -117,7 +117,7 @@ mod tests {
             }
         }
         let img = DynamicImage::ImageRgb8(img_buf);
-        let score = calc_colourfulness(&img);
+        let score = calc_colorfulness(&img);
         assert!(
             score > 20.0,
             "Colorful gradient should score high, got {score}"
