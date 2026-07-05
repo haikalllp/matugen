@@ -58,6 +58,7 @@ pub struct State {
     pub schemes: Option<Schemes>,
     pub default_scheme: SchemesEnum,
     pub resolved_type: SchemeTypes,
+    pub smart_variant: SchemeTypes,
     pub image_hash: ImageCache,
     pub loaded_cache: bool,
     pub base16: Option<Schemes>,
@@ -80,9 +81,15 @@ impl State {
 
         let caching_enabled = config_file.config.caching.unwrap_or(false) && args.source.is_image();
 
+        let any_template_smart = config_file
+            .templates
+            .values()
+            .any(|t| matches!(t.r#type, Some(SchemeTypes::SchemeSmart)));
+
         let smart_opts: Option<SmartOpts> = if args.source.is_image()
             && (matches!(effective_mode, SchemesEnum::Smart)
-                || matches!(effective_type, SchemeTypes::SchemeSmart))
+                || matches!(effective_type, SchemeTypes::SchemeSmart)
+                || any_template_smart)
         {
             let image_path = match &args.source {
                 Source::Image { path } => path,
@@ -101,6 +108,11 @@ impl State {
         } else {
             None
         };
+
+        let smart_variant = smart_opts
+            .as_ref()
+            .map(|o| o.variant)
+            .unwrap_or(SchemeTypes::SchemeTonalSpot);
 
         let default_scheme = match effective_mode {
             SchemesEnum::Smart => smart_opts
@@ -150,6 +162,7 @@ impl State {
                     schemes: None,
                     default_scheme,
                     resolved_type,
+                    smart_variant,
                     image_hash: image_cache,
                     loaded_cache,
                     base16: None,
@@ -197,6 +210,7 @@ impl State {
             schemes,
             default_scheme,
             resolved_type,
+            smart_variant,
             image_hash: image_cache,
             loaded_cache,
             base16,

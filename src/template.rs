@@ -163,7 +163,11 @@ impl TemplateFile<'_> {
                 continue;
             }
 
-            if let Some(scheme_type) = template.r#type {
+            let scheme_type = template.r#type.map(|t| match t {
+                SchemeTypes::SchemeSmart => self.state.smart_variant,
+                other => other,
+            });
+            if let Some(scheme_type) = scheme_type {
                 if let Some(entry) = self.scheme_cache.get(&scheme_type) {
                     change_scheme_type(
                         self.engine,
